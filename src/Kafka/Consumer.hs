@@ -206,8 +206,8 @@ redirectCallbacksPoll :: KafkaConsumer -> IO (Maybe KafkaError)
 redirectCallbacksPoll (KafkaConsumer k _) =
   (kafkaErrorToMaybe . KafkaResponseError) <$> rdKafkaPollSetConsumer k
 
-seek :: KafkaConsumer -> TopicName -> PartitionId -> Offset -> Timeout -> IO (Maybe KafkaError)
-seek (KafkaConsumer k _) (TopicName tname) (PartitionId p) (Offset o) (Timeout tout) = do
+seek :: KafkaConsumer -> TopicName -> PartitionId -> PartitionOffset -> Timeout -> IO (Maybe KafkaError)
+seek (KafkaConsumer k _) (TopicName tname) (PartitionId p) po (Timeout tout) = do
   res <- withMetadata k False Nothing tout (fmap Right . getMetadataTopics)
   case res of
     Left e -> return $ Just $ KafkaResponseError e
@@ -221,4 +221,4 @@ seek (KafkaConsumer k _) (TopicName tname) (PartitionId p) (Offset o) (Timeout t
           case ret of
             Left e -> return $ Just $ KafkaError e
             Right tp ->
-              (kafkaErrorToMaybe . KafkaResponseError) <$> rdKafkaSeek tp (fromIntegral p) (fromIntegral o) tout
+              (kafkaErrorToMaybe . KafkaResponseError) <$> rdKafkaSeek tp (fromIntegral p) (fromIntegral $ offsetToInt64 po) tout
