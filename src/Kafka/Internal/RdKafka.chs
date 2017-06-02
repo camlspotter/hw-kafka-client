@@ -841,3 +841,12 @@ c_stdout :: IO CFilePtr
 c_stdout = handleToCFile stdout "w"
 c_stderr :: IO CFilePtr
 c_stderr = handleToCFile stderr "w"
+
+-- Seek
+
+{#fun unsafe rd_kafka_seek as ^
+   { `RdKafkaTopicTPtr'
+   , cIntConv `CInt32T'
+   , cIntConv `CInt64T'
+   , `Int'
+   } -> `RdKafkaRespErrT' cIntToEnum #}

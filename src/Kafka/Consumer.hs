@@ -8,7 +8,8 @@ module Kafka.Consumer
 , commitOffsetMessage
 , commitAllOffsets
 , closeConsumer
-
+, seek
+    
 -- ReExport Types
 , TopicName (..)
 , CIT.OffsetCommit (..)
@@ -202,3 +203,7 @@ setConsumerLogLevel (KafkaConsumer k _) level =
 redirectCallbacksPoll :: KafkaConsumer -> IO (Maybe KafkaError)
 redirectCallbacksPoll (KafkaConsumer k _) =
   (kafkaErrorToMaybe . KafkaResponseError) <$> rdKafkaPollSetConsumer k
+
+seek :: RdKafkaTopicTPtr -> PartitionId -> Offset -> Timeout -> IO (Maybe KafkaError)
+seek ktp (PartitionId p) (Offset o) (Timeout tout) = do
+  (kafkaErrorToMaybe . KafkaResponseError) <$> rdKafkaSeek ktp (fromIntegral p) (fromIntegral o) tout
