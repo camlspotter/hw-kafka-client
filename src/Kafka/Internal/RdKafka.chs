@@ -14,6 +14,7 @@ import Kafka.Internal.RdKafkaEnum
 import System.IO
 import System.Posix.IO
 import System.Posix.Types
+import Control.Exception.Base
 
 #include "rdkafka.h"
 
@@ -768,6 +769,28 @@ castMetadata ptr = castPtr ptr
 
 {# fun rd_kafka_metadata_destroy as ^
    {castPtr `Ptr RdKafkaMetadataT'} -> `()' #}
+
+withMetadata
+  :: RdKafkaTPtr
+  -> Bool
+  -> Maybe RdKafkaTopicTPtr
+  -> Int
+  -> (RdKafkaMetadataT -> IO (Either RdKafkaRespErrT a))
+  -> IO (Either RdKafkaRespErrT a)
+withMetadata kp allTopics onlyForThisTopic tout f = alloca $ \mdpp -> do
+  fptr <- case onlyForThisTopic of
+    Nothing -> newForeignPtr_ nullPtr
+    Just x -> return x
+  err <- rdKafkaMetadata kp allTopics fptr mdpp tout
+  case err of
+    RdKafkaRespErrNoError -> bracket (peek mdpp) rdKafkaMetadataDestroy $ \mdp -> f =<< peek mdp
+    _ -> return $ Left err
+
+getMetadataBrokers :: RdKafkaMetadataT -> IO [RdKafkaMetadataBrokerT]
+getMetadataBrokers md = peekArray (brokerCnt'RdKafkaMetadataT md) (brokers'RdKafkaMetadataT md)
+
+getMetadataTopics :: RdKafkaMetadataT -> IO [RdKafkaMetadataTopicT]
+getMetadataTopics md = peekArray (topicCnt'RdKafkaMetadataT md) (topics'RdKafkaMetadataT md)
 
 {#fun rd_kafka_poll as ^
     {`RdKafkaTPtr', `Int'} -> `Int' #}
