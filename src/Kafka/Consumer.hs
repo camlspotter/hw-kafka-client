@@ -40,6 +40,8 @@ import Kafka.Consumer.Types as X
 import Kafka.Consumer.Subscription as X
 import Kafka.Consumer.ConsumerProperties as X
 
+import Foreign.C.String
+
 -- | Runs high-level kafka consumer.
 --
 -- A callback provided is expected to call 'pollMessage' when convenient.
@@ -204,6 +206,19 @@ redirectCallbacksPoll :: KafkaConsumer -> IO (Maybe KafkaError)
 redirectCallbacksPoll (KafkaConsumer k _) =
   (kafkaErrorToMaybe . KafkaResponseError) <$> rdKafkaPollSetConsumer k
 
-seek :: RdKafkaTopicTPtr -> PartitionId -> Offset -> Timeout -> IO (Maybe KafkaError)
-seek ktp (PartitionId p) (Offset o) (Timeout tout) = do
-  (kafkaErrorToMaybe . KafkaResponseError) <$> rdKafkaSeek ktp (fromIntegral p) (fromIntegral o) tout
+seek :: KafkaConsumer -> TopicName -> PartitionId -> Offset -> Timeout -> IO (Maybe KafkaError)
+seek (KafkaConsumer k _) (TopicName tname) (PartitionId p) (Offset o) (Timeout tout) = do
+  res <- withMetadata k False Nothing tout (fmap Right . getMetadataTopics)
+  case res of
+    Left e -> return $ Just $ KafkaResponseError e
+    Right mdts -> do
+      tnames <- mapM (peekCAString . topic'RdKafkaMetadataTopicT) mdts
+      if not $ elem tname tnames
+        then return $ Just $ KafkaError "Topic does not exist"
+        else do
+          nullFPtr <- newForeignPtr_ nullPtr {- no conf -}
+          ret <- newRdKafkaTopicT k tname nullFPtr
+          case ret of
+            Left e -> return $ Just $ KafkaError e
+            Right tp ->
+              (kafkaErrorToMaybe . KafkaResponseError) <$> rdKafkaSeek tp (fromIntegral p) (fromIntegral o) tout
