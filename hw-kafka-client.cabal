@@ -71,6 +71,7 @@ library
     Kafka.Producer
     Kafka.Producer.ProducerProperties
     Kafka.Producer.Types
+    Kafka.Watermark
   other-modules:
     Kafka.Consumer.Convert
     Kafka.Internal.Shared

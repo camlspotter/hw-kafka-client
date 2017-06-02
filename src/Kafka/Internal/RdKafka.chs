@@ -850,3 +850,22 @@ c_stderr = handleToCFile stderr "w"
    , cIntConv `CInt64T'
    , `Int'
    } -> `RdKafkaRespErrT' cIntToEnum #}
+
+-- Wartermarks
+
+{#fun unsafe rd_kafka_query_watermark_offsets as ^
+   { `RdKafkaTPtr'
+   , `String'
+   , cIntConv `CInt32T'
+   , alloca- `CInt64T' peek*
+   , alloca- `CInt64T' peek*
+   , `Int'
+   } -> `RdKafkaRespErrT' cIntToEnum #}
+
+{#fun unsafe rd_kafka_get_watermark_offsets as ^
+   { `RdKafkaTPtr'
+   , `String'
+   , cIntConv `CInt32T'
+   , alloca- `CInt64T' peek*
+   , alloca- `CInt64T' peek*
+   } -> `RdKafkaRespErrT' cIntToEnum #}
