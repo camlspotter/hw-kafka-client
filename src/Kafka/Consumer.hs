@@ -5,6 +5,7 @@ module Kafka.Consumer
 , newConsumer
 , assign
 , pollMessage
+, pollMessageWithTimestamp
 , commitOffsetMessage
 , commitAllOffsets
 , closeConsumer
@@ -89,6 +90,14 @@ pollMessage :: MonadIO m
             -> m (Either KafkaError (ConsumerRecord (Maybe BS.ByteString) (Maybe BS.ByteString))) -- ^ Left on error or timeout, right for success
 pollMessage (KafkaConsumer k _) (Timeout ms) =
     liftIO $ rdKafkaConsumerPoll k (fromIntegral ms) >>= fromMessagePtr
+
+-- | Polls the next message from a subscription, with the Kafka timestamp
+pollMessageWithTimestamp :: MonadIO m
+                         => KafkaConsumer
+                         -> Timeout -- ^ the timeout, in milliseconds
+                         -> m (Either KafkaError (ConsumerRecord (Maybe BS.ByteString) (Maybe BS.ByteString), Maybe KafkaTimestamp)) -- ^ Left on error or timeout, right for success
+pollMessageWithTimestamp (KafkaConsumer k _) (Timeout ms) = do
+    liftIO $ rdKafkaConsumerPoll k (fromIntegral ms) >>= fromMessagePtrWithTimestamp
 
 -- | Commit message's offset on broker for the message's partition.
 commitOffsetMessage :: MonadIO m

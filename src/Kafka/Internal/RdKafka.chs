@@ -637,6 +637,20 @@ foreign import ccall unsafe "rdkafka.h &rd_kafka_message_destroy"
 foreign import ccall unsafe "rdkafka.h rd_kafka_message_destroy"
     rdKafkaMessageDestroy :: Ptr RdKafkaMessageT -> IO ()
 
+
+{#enum rd_kafka_timestamp_type_t as ^ {underscoreToCase} deriving (Show, Eq) #}
+
+instance Storable RdKafkaTimestampTypeT where
+  sizeOf _ = sizeOf (undefined :: CInt)
+  alignment _ = alignment (undefined :: CInt)
+  peek ptr = peek (castPtr ptr :: Ptr CInt) >>= (return . toEnum . fromIntegral)
+  poke ptr val = poke (castPtr ptr :: Ptr CInt) (fromIntegral $ fromEnum val)
+
+{#pointer *rd_kafka_timestamp_type_t as RdKafkaTimestampTypeTPtr foreign -> RdKafkaTimestampTypeT #}
+
+{#fun unsafe rd_kafka_message_timestamp as ^
+    {`RdKafkaMessageTPtr', `RdKafkaTimestampTypeTPtr'} -> `CInt64T' cIntConv #}
+
 -- rd_kafka_conf
 {#fun rd_kafka_conf_new as ^
     {} -> `RdKafkaConfTPtr' #}
