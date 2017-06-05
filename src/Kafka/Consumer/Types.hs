@@ -133,3 +133,8 @@ data PartitionOffset =
   | PartitionOffsetStored
   | PartitionOffsetInvalid
   deriving (Eq, Show)
+
+data KafkaTimestamp
+  = CreateTime Int32    -- ^ Milliseconds from the Epoch
+  | LogAppendTime Int32 -- ^ Milliseconds from the Epoch
+  deriving (Show)

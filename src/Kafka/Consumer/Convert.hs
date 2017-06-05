@@ -92,6 +92,21 @@ fromMessagePtr ptr =
         rdKafkaMessageDestroy realPtr
         return msg
 
+fromMessagePtrWithTimestamp :: RdKafkaMessageTPtr -> IO (Either KafkaError (ConsumerRecord (Maybe BS.ByteString) (Maybe BS.ByteString), Maybe KafkaTimestamp))
+fromMessagePtrWithTimestamp ptr =
+    withForeignPtr ptr $ \realPtr ->
+    if realPtr == nullPtr then (Left . kafkaRespErr) <$> getErrno
+    else do
+        s <- peek realPtr
+        msg <- if err'RdKafkaMessageT s /= RdKafkaRespErrNoError
+            then return . Left . KafkaResponseError $ err'RdKafkaMessageT s
+            else do
+              m <- fromMessageStorable s
+              tstamp <- getMessageTimestamp ptr
+              return $ Right (m, tstamp)
+        rdKafkaMessageDestroy realPtr
+        return msg
+
 fromMessageStorable :: RdKafkaMessageT -> IO (ConsumerRecord (Maybe BS.ByteString) (Maybe BS.ByteString))
 fromMessageStorable s = do
     topic   <- newForeignPtr_ (topic'RdKafkaMessageT s) >>= rdKafkaTopicName
@@ -114,3 +129,14 @@ fromMessageStorable s = do
 offsetCommitToBool :: OffsetCommit -> Bool
 offsetCommitToBool OffsetCommit = False
 offsetCommitToBool OffsetCommitAsync = True
+
+getMessageTimestamp :: RdKafkaMessageTPtr -> IO (Maybe KafkaTimestamp)
+getMessageTimestamp fptrMessage = 
+  alloca $ \ptr -> do
+    fptr <- newForeignPtr_ ptr
+    tstamp <- fmap fromIntegral $ rdKafkaMessageTimestamp fptrMessage fptr
+    x <- peek ptr
+    return $ case x of
+      RdKafkaTimestampNotAvailable -> Nothing
+      RdKafkaTimestampCreateTime -> Just $ CreateTime tstamp
+      RdKafkaTimestampLogAppendTime -> Just $ LogAppendTime tstamp
